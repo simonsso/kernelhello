@@ -1,23 +1,77 @@
 // simple example of a kernel hello world.
 // As found on http://www.tldp.org/LDP/lkmpg/2.6/html/x121.html
 
-/* Needed by all modules */
 #include <linux/module.h>
-
-/* Needed for KERN_INFO */
 #include <linux/kernel.h>
-
-/* Necessary because we use the proc fs */
 #include <linux/proc_fs.h>
+
+#include <linux/fs.h>
+#include <linux/sched.h>
+#include <linux/errno.h>
+#include <asm/current.h>
+#include <asm/segment.h>
+#include <asm/uaccess.h>
 
 MODULE_LICENSE("GPL");
 
 
+char my_data[80]="example"; /* our device */
+
+int my_open(struct inode *inode,struct file *filep);
+int my_release(struct inode *inode,struct file *filep);
+ssize_t my_read(struct file *filep,char *buff,size_t count,loff_t *offp );
+ssize_t my_write(struct file *filep,const char *buff,size_t count,loff_t *offp );
+   
+struct file_operations my_fops={
+   open: my_open,
+   read: my_read,
+   write: my_write,
+   release:my_release,
+};
+
+int my_open(struct inode *inode,struct file *filep)
+{
+   /*MOD_INC_USE_COUNT;*/ /* increments usage count of module */
+   return 0;
+}
+
+int my_release(struct inode *inode,struct file *filep)
+{
+   /*MOD_DEC_USE_COUNT;*/ /* decrements usage count of module */
+   return 0;
+}
+ssize_t my_read(struct file *filep,char *buff,size_t count,loff_t *offp )
+{
+   /* function to copy kernel space buffer to user space*/
+   if ( copy_to_user(buff,my_data,strlen(my_data)) != 0 )
+      printk( "Kernel -> userspace copy failed!\n" );
+   return strlen(my_data);
+
+}
+ssize_t my_write(struct file *filep,const char *buff,size_t count,loff_t *offp )
+{
+   /* function to copy user space buffer to kernel space*/
+   int mysize;
+   my_data[79]=0;
+   mysize=(count>80)?80:count;
+   if ( copy_from_user(my_data,buff,mysize) != 0 ){
+      printk( "Userspace -> kernel copy failed!\n" );
+   }else{
+      printk(my_data);
+   }
+   return 0;
+}
+
+
 int kernelhello; // Store a global in the kernel
+
+
 int init_module(void)
 {
 	printk(KERN_INFO "Hello world 1.\n");
-
+   if(register_chrdev(222,"my_device",&my_fops)){
+      printk("<1>failed to register");
+   }
 	/* 
 	 * A non 0 return means init_module failed; module can't be loaded. 
 	 */
@@ -27,5 +81,6 @@ int init_module(void)
 
 void cleanup_module(void)
 {
+   unregister_chrdev(222,"my_device");
 	printk(KERN_INFO "Goodbye world 1.\n");
 }
