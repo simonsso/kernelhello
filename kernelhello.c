@@ -31,13 +31,13 @@ struct file_operations my_fops={
 
 int my_open(struct inode *inode,struct file *filep)
 {
-   /*MOD_INC_USE_COUNT;*/ /* increments usage count of module */
+  // ???  MOD_INC_USE_COUNT; /* increments usage count of module */
    return 0;
 }
 
 int my_release(struct inode *inode,struct file *filep)
 {
-   /*MOD_DEC_USE_COUNT;*/ /* decrements usage count of module */
+   // ?? MOD_DEC_USE_COUNT; /* decrements usage count of module */
    return 0;
 }
 ssize_t my_read(struct file *filep,char *buff,size_t count,loff_t *offp )
@@ -52,11 +52,11 @@ ssize_t my_write(struct file *filep,const char *buff,size_t count,loff_t *offp )
 {
    /* function to copy user space buffer to kernel space*/
    int mysize;
-   my_data[79]=0;
    mysize=(count>80)?80:count;
    if ( copy_from_user(my_data,buff,mysize) != 0 ){
       printk( "Userspace -> kernel copy failed!\n" );
    }else{
+      my_data[79]=0;
       printk(my_data);
    }
    return 0;
