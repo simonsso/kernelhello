@@ -12,6 +12,7 @@ MODULE_LICENSE("GPL");
 int procfile_read(char *buffer, char **buffer_location, off_t offset, int buffer_length, int *eof, void *data);
 struct proc_dir_entry *Our_Proc_File;
 
+int kernelhello; // Store a global in the kernel
 int init_module(void)
 {
 	printk(KERN_INFO "Hello world 1.\n");
@@ -58,7 +59,7 @@ int procfile_read(char *buffer, char **buffer_location, off_t offset, int buffer
 		ret  = 0;
 	} else {
 		/* fill the buffer, return the buffer size */
-		ret = sprintf(buffer, "Kernel helloworld!\n");
+		ret = sprintf(buffer, "Kernel %x helloworld!\n",kernelhello++);
 	}
 
 	return ret;
