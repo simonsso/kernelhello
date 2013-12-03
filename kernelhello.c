@@ -5,17 +5,12 @@
 #include <linux/kernel.h>
 #include <linux/proc_fs.h>
 
-#include <linux/fs.h>
-#include <linux/sched.h>
-#include <linux/errno.h>
-#include <asm/current.h>
-#include <asm/segment.h>
 #include <asm/uaccess.h>
 
 MODULE_LICENSE("GPL");
 
 
-char my_data[80]="example"; /* our device */
+char my_data[1024]="example"; /* our device */
 
 int my_open(struct inode *inode,struct file *filep);
 int my_release(struct inode *inode,struct file *filep);
@@ -42,10 +37,14 @@ int my_release(struct inode *inode,struct file *filep)
 }
 ssize_t my_read(struct file *filep,char *buff,size_t count,loff_t *offp )
 {
+   int mysize;
+   mysize=strlen(my_data);
+   mysize=(mysize>80)?80:mysize;
    /* function to copy kernel space buffer to user space*/
-   if ( copy_to_user(buff,my_data,strlen(my_data)) != 0 )
+   if ( copy_to_user(buff,my_data,mysize) != 0 ){
       printk( "Kernel -> userspace copy failed!\n" );
-   return strlen(my_data);
+   }
+   return mysize;
 
 }
 ssize_t my_write(struct file *filep,const char *buff,size_t count,loff_t *offp )
@@ -53,13 +52,15 @@ ssize_t my_write(struct file *filep,const char *buff,size_t count,loff_t *offp )
    /* function to copy user space buffer to kernel space*/
    int mysize;
    mysize=(count>80)?80:count;
+   printk("my_write %d \n",(int) count);
    if ( copy_from_user(my_data,buff,mysize) != 0 ){
       printk( "Userspace -> kernel copy failed!\n" );
    }else{
       my_data[79]=0;
+      my_data[mysize]=0;
       printk(my_data);
    }
-   return 0;
+   return mysize;
 }
 
 
