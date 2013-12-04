@@ -4,6 +4,7 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/proc_fs.h>
+#include <linux/delay.h>
 
 #include <asm/uaccess.h>
 
@@ -51,14 +52,46 @@ ssize_t my_write(struct file *filep,const char *buff,size_t count,loff_t *offp )
 {
    /* function to copy user space buffer to kernel space*/
    int mysize;
+   int i;
+   volatile int *GPSET0;
+   volatile int *GPCLR0;
+   GPSET0=(int*)0x7e20001c;
+   GPCLR0=(int*)0x7e200028;
+  
    mysize=(count>80)?80:count;
    printk("my_write %d \n",(int) count);
    if ( copy_from_user(my_data,buff,mysize) != 0 ){
       printk( "Userspace -> kernel copy failed!\n" );
    }else{
+      
       my_data[79]=0;
       my_data[mysize]=0;
-      printk(my_data);
+      printk(my_data);   //store some debuging logs
+      for(i=0;i<12;i++){
+          if(my_data[i]=='0'){
+             *GPSET0=0x00004000;
+             udelay(350);
+             *GPCLR0=0x00004000;
+             udelay(1050);
+             *GPSET0=0x00004000;
+             udelay(350);
+             *GPCLR0=0x00004000;
+             udelay(1050);
+          }else if(my_data[i]=='X'){
+             *GPSET0=0x00004000;
+             udelay(350);
+             *GPCLR0=0x00004000;
+             udelay(1050);
+             *GPSET0=0x00004000;
+             udelay(1050);
+             *GPCLR0=0x00004000;
+             udelay(350);
+          }
+      }
+      *GPSET0=0x00004000;
+      udelay(350);
+      *GPCLR0=0x00004000;
+
    }
    return mysize;
 }
@@ -69,10 +102,17 @@ int kernelhello; // Store a global in the kernel
 
 int init_module(void)
 {
+   int *p;
 	printk(KERN_INFO "Hello world 1.\n");
    if(register_chrdev(222,"my_device",&my_fops)){
-      printk("<1>failed to register");
+      printk("failed to register");
    }
+   
+   // All gpio are inputs execpt gpio14
+   // FUNSEL0-3 all 0 expept for but 14-12 in FUNSEL1 which are "001"
+   p=(int *)0x7e200004;
+   *p=0x00001000;
+
 	/* 
 	 * A non 0 return means init_module failed; module can't be loaded. 
 	 */
