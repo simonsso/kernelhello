@@ -55,8 +55,8 @@ ssize_t my_write(struct file *filep,const char *buff,size_t count,loff_t *offp )
    int i;
    volatile int *GPSET0;
    volatile int *GPCLR0;
-   GPSET0=(int*)0x7e20001c;
-   GPCLR0=(int*)0x7e200028;
+   GPSET0=(int*)0xf220001c;
+   GPCLR0=(int*)0xf2200028;
   
    mysize=(count>80)?80:count;
    printk("my_write %d \n",(int) count);
@@ -110,7 +110,7 @@ int init_module(void)
    
    // All gpio are inputs execpt gpio14
    // FUNSEL0-3 all 0 expept for but 14-12 in FUNSEL1 which are "001"
-   p=(int *)0x7e200004;
+   p=(int *)0xf2200004;
    *p=0x00001000;
 
 	/* 
